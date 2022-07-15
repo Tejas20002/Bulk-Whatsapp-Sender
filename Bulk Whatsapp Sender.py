@@ -2,7 +2,7 @@ import sys
 import os
 import pandas as pd
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QInputDialog, QFileDialog, QMessageBox, QButtonGroup, QTableWidgetItem
+from PyQt5.QtWidgets import QInputDialog, QFileDialog, QMessageBox, QButtonGroup, QTableWidgetItem, QStyledItemDelegate
 from design import Ui_MainWindow
 import whatsArcCore as wa
 
@@ -13,6 +13,11 @@ productKey = None
 csvPath = None
 filteredCsvFileName = None
 
+# ReadOnly Class data of the tablewidget row
+class ReadOnlyDelegate(QStyledItemDelegate):
+    def createEditor(self, parent, option, index):
+        print("create row readonly")
+        return 
 
 # Filter whatsapp contacts
 class ExcelCheck(QtCore.QThread):
@@ -130,7 +135,7 @@ class Main(QtWidgets.QMainWindow):
         self.ui.mediaBrowse.clicked.connect(self.open_media_dialog)
         # self.ui.messageWithMedia.toggled.connect(self.send_message_with_media)
         self.ui.runScript.clicked.connect(self.execute_script)
-        self.ui.hasLink.clicked.connect(self.onHasLinkClicked)
+        # self.ui.hasLink.clicked.connect(self.onHasLinkClicked)
         self.ui.isRotateCB.clicked.connect(self.onisRotateCBClicked)
 
         self.modeGroup = QButtonGroup()
@@ -147,12 +152,19 @@ class Main(QtWidgets.QMainWindow):
         self.ui.addAccount.triggered.connect(self.showAddAccountDialog)
         self.ui.selectAccount.currentIndexChanged.connect(self.accountSelectionChanged)
         self.ui.deleteAccount.clicked.connect(self.accountDeleteConfirmation)
+        self.ui.addRow.clicked.connect(self.addRow)
+
+        delegate = ReadOnlyDelegate(self)
+        self.ui.tableWidget.setItemDelegateForColumn(0, delegate)
 
         self.ui.filterCsv.clicked.connect(self.initialiseWaFilter)
 
         self.setComboBox()
         self.fetchUpdatedAPI()
 
+    def addRow(self):
+        rowCount = self.ui.tableWidget.rowCount()
+        self.ui.tableWidget.insertRow(rowCount)
             
     def accountSelectionChanged(self,i):
         wa.account = self.ui.selectAccount.currentText()
@@ -182,6 +194,8 @@ class Main(QtWidgets.QMainWindow):
             self.ui.tableWidget.setItem(index,cdx+5, QTableWidgetItem(str(row['VAR3'])))
             self.ui.tableWidget.setItem(index,cdx+6, QTableWidgetItem(str(row['VAR4'])))
             self.ui.tableWidget.setItem(index,cdx+7, QTableWidgetItem(str(row['VAR5'])))
+        self.ui.tableWidget.resizeRowsToContents()
+        self.ui.tableWidget.resizeColumnsToContents()
         # except:
         #     self.show_error_dialog("Select Valid CSV File")
         #     self.ui.csvInput.setText("")
@@ -232,11 +246,11 @@ class Main(QtWidgets.QMainWindow):
                 self.hyperlinkController(True)
                 self.hasLinkController(True)
     
-    def onHasLinkClicked(self):
-        if self.ui.hasLink.isChecked():
-            self.hyperlinkController(False)
-        else:
-            self.hyperlinkController(True)
+    # def onHasLinkClicked(self):
+    #     if self.ui.hasLink.isChecked():
+    #         self.hyperlinkController(False)
+    #     else:
+    #         self.hyperlinkController(True)
 
     def onisRotateCBClicked(self):
         if self.ui.isRotateCB.isChecked():
@@ -255,9 +269,6 @@ class Main(QtWidgets.QMainWindow):
 
     def textController(self,args):
         self.ui.messageInput.setDisabled(args)
-
-    def hyperlinkController(self,args):
-        self.ui.hyperlinkInput.setDisabled(args)
 
     def hasLinkController(self,args):
         self.ui.hasLink.setDisabled(args)
@@ -281,11 +292,6 @@ class Main(QtWidgets.QMainWindow):
 
         if choice == "onlyMessage":
             wa.message = self.ui.messageInput.toPlainText()
-            
-            if self.ui.hasLink.isChecked():
-                wa.hyperlink = self.ui.hyperlinkInput.text()
-            else:
-                wa.hyperlink = None
 
         elif choice == "onlyMedia":
             wa.encodeMedia(mediaPath)
@@ -423,6 +429,8 @@ class Main(QtWidgets.QMainWindow):
             print("Failed {}, to: {}".format(len(wa.failed), wa.failed))
 
     def tableUiUpdate(self, statusIndex=None, status=None):
+        self.ui.tableWidget.resizeColumnsToContents()
+        self.ui.tableWidget.resizeRowsToContents()
         self.ui.tableWidget.setItem(statusIndex,0, QTableWidgetItem(status))
 
     def fetchUpdatedAPI(self):
@@ -437,16 +445,18 @@ class Main(QtWidgets.QMainWindow):
         # msg.close()
 
     def parseTableData(self):
+        columnHeaders = []
         rows = self.ui.tableWidget.rowCount()
         columns = self.ui.tableWidget.columnCount()
-        columnList = ['status','name', 'mobile', 'VAR1', 'VAR2', 'VAR3', 'VAR4', 'VAR5']
+        for j in range(columns):
+            columnHeaders.append(self.ui.tableWidget.horizontalHeaderItem(j).text())
 
-        data = pd.DataFrame(columns=['status','name', 'mobile', 'VAR1', 'VAR2', 'VAR3', 'VAR4', 'VAR5']) 
+        data = pd.DataFrame(columns=columnHeaders) 
 
         for i in range(rows):
             for j in range(columns):
-                data.loc[i, columnList[j]] = self.ui.tableWidget.item(i, j).text()
-        
+                data.loc[i, columnHeaders[j]] = self.ui.tableWidget.item(i, j).text()
+        data.to_csv('newdata.csv', index=False)
         # Clear lists
         wa.contactName = wa.contactNumber = wa.variables = []
         

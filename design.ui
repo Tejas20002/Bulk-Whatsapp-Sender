@@ -204,18 +204,7 @@
              </widget>
             </item>
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_11">
-              <item>
-               <widget class="QLabel" name="label">
-                <property name="text">
-                 <string>Link:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLineEdit" name="hyperlinkInput"/>
-              </item>
-             </layout>
+             <layout class="QHBoxLayout" name="horizontalLayout_11"/>
             </item>
            </layout>
           </item>
@@ -347,6 +336,13 @@
             <string>VAR5</string>
            </property>
           </column>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="addRow">
+          <property name="text">
+           <string>Add Row</string>
+          </property>
          </widget>
         </item>
        </layout>
